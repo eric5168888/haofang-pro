@@ -1,0 +1,117 @@
+name: Build Android APK (好房通 Pro)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 檢出專案原始碼
+        uses: actions/checkout@v4
+
+      - name: 2. 安裝 Node.js 20 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 3. 安裝 Java JDK 21 (Android 編譯必備)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 4. 自動建立 React + Tailwind + Capacitor 完整專案結構
+        run: |
+          mkdir -p src
+          if [ -f "App.jsx" ]; then cp App.jsx src/App.jsx; fi
+
+          cat << 'EOF' > package.json
+          {
+            "name": "haofang-pro-app",
+            "private": true,
+            "version": "1.2.0",
+            "type": "module",
+            "scripts": {
+              "dev": "vite",
+              "build": "vite build"
+            },
+            "dependencies": {
+              "@capacitor/android": "^6.0.0",
+              "@capacitor/cli": "^6.0.0",
+              "@capacitor/core": "^6.0.0",
+              "lucide-react": "^0.390.0",
+              "react": "^18.2.0",
+              "react-dom": "^18.2.0"
+            },
+            "devDependencies": {
+              "@vitejs/plugin-react": "^4.2.1",
+              "vite": "^5.2.0"
+            }
+          }
+          EOF
+
+          cat << 'EOF' > vite.config.js
+          import { defineConfig } from 'vite';
+          import react from '@vitejs/plugin-react';
+          export default defineConfig({
+            plugins: [react()],
+          });
+          EOF
+
+          cat << 'EOF' > index.html
+          <!DOCTYPE html>
+          <html lang="zh-TW">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+              <title>好房通 Pro - 台灣房仲專用行動助理</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-slate-900">
+              <div id="root"></div>
+              <script type="module" src="/src/main.jsx"></script>
+            </body>
+          </html>
+          EOF
+
+          cat << 'EOF' > src/main.jsx
+          import React from 'react';
+          import ReactDOM from 'react-dom/client';
+          import App from './App.jsx';
+          ReactDOM.createRoot(document.getElementById('root')).render(
+            <React.StrictMode>
+              <App />
+            </React.StrictMode>
+          );
+          EOF
+
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.twrealty.haofangpro",
+            "appName": "好房通 Pro",
+            "webDir": "dist",
+            "bundledWebRuntime": false
+          }
+          EOF
+
+      - name: 5. 安裝套件並編譯網頁與 Android 原生專案
+        run: |
+          npm install
+          npm run build
+          npx cap add android
+          npx cap sync android
+
+      - name: 6. 使用 Gradle 編譯可安裝的 .APK 檔案
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: 7. 匯出好房通Pro安裝檔 (.apk)
+        uses: actions/upload-artifact@v4
+        with:
+          name: 好房通Pro-Android-APK-安裝檔
+          path: android/app/build/outputs/apk/debug/app-debug.apk
