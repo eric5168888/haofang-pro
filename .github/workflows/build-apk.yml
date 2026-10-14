@@ -7,15 +7,15 @@ on:
 
 jobs:
   build-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: 1. 檢出專案原始碼
         uses: actions/checkout@v4
 
-      - name: 2. 安裝 Node.js 20 環境
+      - name: 2. 安裝 Node.js 22 環境
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: 3. 安裝 Java JDK 21 (Android 編譯必備)
         uses: actions/setup-java@v4
@@ -25,52 +25,85 @@ jobs:
 
       - name: 4. 自動建立 React + Capacitor 專案結構
         run: |
+          echo "=== 檢查目前倉庫內的檔案 ==="
+          ls -la
           mkdir -p src
-          if [ -f "App.jsx" ]; then
-            cp App.jsx src/App.jsx
-          elif [ -f "app.jsx" ]; then
-            cp app.jsx src/App.jsx
+
+          # 自動尋找 App.jsx (包含不小心存成 .txt 或大小寫不同的情況)
+          FOUND_FILE=$(find . -maxdepth 2 -type f \( -iname "app.jsx*" -o -iname "*.jsx" \) | head -n 1)
+          if [ -n "$FOUND_FILE" ]; then
+            echo "✅ 找到程式碼檔案：$FOUND_FILE，複製至 src/App.jsx"
+            cp "$FOUND_FILE" src/App.jsx
           else
-            echo "錯誤：找不到 App.jsx，請確認檔案名稱！"
-            ls -la
+            echo "❌ 找不到 App.jsx！請確認您有把 App.jsx 建立在這個 haofang-pro 倉庫中！"
             exit 1
           fi
 
-          node -e '
-          const fs = require("fs");
-          fs.writeFileSync("package.json", JSON.stringify({
-            name: "haofang-pro-app",
-            private: true,
-            version: "1.2.0",
-            type: "module",
-            scripts: { dev: "vite", build: "vite build" },
-            dependencies: {
-              "@capacitor/android": "^6.0.0",
-              "@capacitor/cli": "^6.0.0",
-              "@capacitor/core": "^6.0.0",
-              "lucide-react": "^0.390.0",
-              "react": "^18.2.0",
-              "react-dom": "^18.2.0"
+          cat << 'EOF' > package.json
+          {
+            "name": "haofang-pro",
+            "private": true,
+            "version": "1.2.0",
+            "type": "module",
+            "scripts": {
+              "dev": "vite",
+              "build": "vite build"
             },
-            devDependencies: {
-              "@vitejs/plugin-react": "^4.2.1",
-              "vite": "^5.2.0"
+            "dependencies": {
+              "@capacitor/android": "^6.1.0",
+              "@capacitor/cli": "^6.1.0",
+              "@capacitor/core": "^6.1.0",
+              "lucide-react": "^0.400.0",
+              "react": "^18.3.1",
+              "react-dom": "^18.3.1"
+            },
+            "devDependencies": {
+              "@vitejs/plugin-react": "^4.3.0",
+              "vite": "^5.3.0"
             }
-          }, null, 2));
+          }
+          EOF
 
-          fs.writeFileSync("vite.config.js", "import { defineConfig } from \"vite\";\nimport react from \"@vitejs/plugin-react\";\nexport default defineConfig({ plugins: [react()] });\n");
+          cat << 'EOF' > vite.config.js
+          import { defineConfig } from "vite";
+          import react from "@vitejs/plugin-react";
+          export default defineConfig({ plugins: [react()] });
+          EOF
 
-          fs.writeFileSync("index.html", "<!DOCTYPE html><html lang=\"zh-TW\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\" /><title>好房通 Pro</title><script src=\"https://cdn.tailwindcss.com\"></script></head><body class=\"bg-slate-900\"><div id=\"root\"></div><script type=\"module\" src=\"/src/main.jsx\"></script></body></html>");
+          cat << 'EOF' > index.html
+          <!DOCTYPE html>
+          <html lang="zh-TW">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+              <title>好房通 Pro</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-slate-900">
+              <div id="root"></div>
+              <script type="module" src="/src/main.jsx"></script>
+            </body>
+          </html>
+          EOF
 
-          fs.writeFileSync("src/main.jsx", "import React from \"react\";\nimport ReactDOM from \"react-dom/client\";\nimport App from \"./App.jsx\";\nReactDOM.createRoot(document.getElementById(\"root\")).render(<React.StrictMode><App /></React.StrictMode>);\n");
+          cat << 'EOF' > src/main.jsx
+          import React from "react";
+          import ReactDOM from "react-dom/client";
+          import App from "./App.jsx";
+          ReactDOM.createRoot(document.getElementById("root")).render(
+            <React.StrictMode>
+              <App />
+            </React.StrictMode>
+          );
+          EOF
 
-          fs.writeFileSync("capacitor.config.json", JSON.stringify({
-            appId: "com.twrealty.haofangpro",
-            appName: "好房通 Pro",
-            webDir: "dist",
-            bundledWebRuntime: false
-          }, null, 2));
-          '
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.twrealty.haofangpro",
+            "appName": "好房通 Pro",
+            "webDir": "dist"
+          }
+          EOF
 
       - name: 5. 安裝套件並編譯網頁與 Android 專案
         run: |
