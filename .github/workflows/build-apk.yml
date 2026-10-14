@@ -23,7 +23,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 4. 自動產生完整好房通 Pro 專案與程式碼
+      - name: 4. 強制建立乾淨的好房通 Pro 專案與 App.jsx
         run: |
           mkdir -p src
           
@@ -93,12 +93,9 @@ jobs:
           }
           EOF
 
-          if [ -f "App.jsx" ]; then
-            cp App.jsx src/App.jsx
-          else
-            cat << 'APPEOF' > src/App.jsx
+          cat << 'APPEOF' > src/App.jsx
           import React, { useState, useEffect } from 'react';
-          import { Building2, Users, Calendar, Calculator, KeyRound, Phone, MessageSquare, Plus, CheckCircle2, Wrench, Search } from 'lucide-react';
+          import { Building2, Users, Calendar, Calculator, KeyRound, Phone, Plus, CheckCircle2, Search } from 'lucide-react';
 
           export default function App() {
             const [tab, setTab] = useState('listings');
@@ -286,61 +283,4 @@ jobs:
                       </div>
                       <div className="space-y-2 text-xs">
                         <label className="block text-slate-400">成交總價（萬）：<input type="number" value={loanPrice} onChange={e => setLoanPrice(Number(e.target.value))} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm" /></label>
-                        <label className="block text-slate-400">貸款成數（%）：<input type="number" value={loanRatio} onChange={e => setLoanRatio(Number(e.target.value))} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm" /></label>
-                        <label className="block text-slate-400">貸款年限（年）：<input type="number" value={loanYears} onChange={e => setLoanYears(Number(e.target.value))} className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm" /></label>
-                      </div>
-                      <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                        <div className="flex justify-between text-xs"><span className="text-slate-400">自備頭期款：</span><span className="font-bold text-white">{loanPrice - loanAmount} 萬</span></div>
-                        <div className="flex justify-between text-xs"><span className="text-slate-400">貸款總金額：</span><span className="font-bold text-emerald-400">{loanAmount} 萬</span></div>
-                        <div className="flex justify-between text-xs"><span className="text-slate-400">買方仲介費 (2%)：</span><span className="font-bold text-amber-300">{(loanPrice * 0.02).toFixed(1)} 萬</span></div>
-                        <div className="pt-2 border-t border-slate-800 flex justify-between items-baseline">
-                          <span className="text-xs text-slate-300">本息均攤月付金：</span>
-                          <span className="text-xl font-extrabold text-amber-400">NT$ {monthlyPay.toLocaleString()} /月</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </main>
-
-                <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex justify-around py-2 z-30">
-                  {[
-                    { id: 'listings', icon: Building2, label: '買賣物件' },
-                    { id: 'rentals', icon: KeyRound, label: '租賃管理' },
-                    { id: 'clients', icon: Users, label: '客戶名單' },
-                    { id: 'schedule', icon: Calendar, label: '帶看行程' },
-                    { id: 'calc', icon: Calculator, label: '房貸試算' }
-                  ].map(item => {
-                    const Icon = item.icon;
-                    const active = tab === item.id;
-                    return (
-                      <button key={item.id} onClick={() => setTab(item.id)} className={`flex flex-col items-center gap-1 text-xs ${active ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}>
-                        <Icon size={18} />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-            );
-          }
-          APPEOF
-          fi
-
-      - name: 5. 安裝套件並轉換為 Android 原生專案
-        run: |
-          npm install
-          npm run build
-          npx cap add android
-          npx cap sync android
-
-      - name: 6. 使用 Gradle 編譯可安裝的 .APK 檔案
-        working-directory: ./android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: 7. 匯出好房通Pro安裝檔 (.apk)
-        uses: actions/upload-artifact@v4
-        with:
-          name: 好房通Pro-Android-APK-安裝檔
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+                        <label className="block text-slate-400">貸款成數（%）：<input type="number" value={loanRatio} onChange={e => setLoanRatio(Number(e.target.value))} className="w-full mt-1 bg-
